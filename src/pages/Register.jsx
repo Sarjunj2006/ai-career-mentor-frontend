@@ -3,13 +3,17 @@ import { useNavigate, Link } from 'react-router-dom'
 import Card from '../components/common/Card'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
-import { useAuth } from '../context/AuthContext'
+import { registerRequest } from '../api/endpoints/auth.api'
 
-const Login = () => {
-  const { login, error } = useAuth()
+const Register = () => {
   const navigate = useNavigate()
 
-  const [formData, setFormData] = useState({ email: '', password: '' })
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+  })
+  const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleChange = (e) => {
@@ -18,14 +22,20 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
     setIsSubmitting(true)
 
-    const result = await login(formData)
-
-    setIsSubmitting(false)
-
-    if (result.success) {
-      navigate('/dashboard')
+    try {
+      await registerRequest(formData)
+      // Registration successful — send them to login to sign in
+      navigate('/login')
+    } catch (err) {
+      const message =
+        err.response?.data?.detail ||
+        'Registration failed. Please try again.'
+      setError(message)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -33,10 +43,18 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-bg">
       <Card className="w-full max-w-sm">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Log in to Career Mentor
+          Create your account
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Input
+            label="Full Name"
+            name="name"
+            type="text"
+            placeholder="John Doe"
+            value={formData.name}
+            onChange={handleChange}
+          />
           <Input
             label="Email"
             name="email"
@@ -66,14 +84,14 @@ const Login = () => {
             className="w-full"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Logging in...' : 'Log In'}
+            {isSubmitting ? 'Creating account...' : 'Register'}
           </Button>
         </form>
 
         <p className="text-sm text-gray-500 mt-4 text-center">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-primary font-medium hover:underline">
-            Register
+          Already have an account?{' '}
+          <Link to="/login" className="text-primary font-medium hover:underline">
+            Log in
           </Link>
         </p>
       </Card>
@@ -81,4 +99,4 @@ const Login = () => {
   )
 }
 
-export default Login
+export default Register

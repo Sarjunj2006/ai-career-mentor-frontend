@@ -3,6 +3,7 @@ import ProtectedRoute from './ProtectedRoute'
 import Layout from '../components/layout/Layout'
 
 import Login from '../pages/Login'
+import Register from '../pages/Register'
 import Dashboard from '../pages/Dashboard'
 import Profile from '../pages/Profile'
 import Resume from '../pages/Resume'
@@ -17,8 +18,9 @@ import NotFound from '../pages/NotFound'
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public route */}
+      {/* Public routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>

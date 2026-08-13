@@ -1,24 +1,56 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { loginRequest } from '../api/endpoints/auth.api'
+import { getToken, setToken, removeToken } from '../utils/tokenStorage'
 
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
-  // Temporary placeholder state — will be replaced with real API-driven auth later
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [user, setUser] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const login = (userData) => {
-    setUser(userData)
-    setIsAuthenticated(true)
+  // Restore auth state on page refresh
+  useEffect(() => {
+    const token = getToken()
+    if (token) {
+      setIsAuthenticated(true)
+    }
+    setIsLoading(false)
+  }, [])
+
+  const login = async (credentials) => {
+    setError('')
+    try {
+      const response = await loginRequest(credentials)
+      const { access_token } = response.data
+
+      setToken(access_token)
+      setIsAuthenticated(true)
+
+      return { success: true }
+    } catch (err) {
+      const message =
+        err.response?.status === 401
+          ? 'Invalid email or password.'
+          : err.response?.data?.detail ||
+            'Something went wrong. Please try again.'
+
+      setError(message)
+      setIsAuthenticated(false)
+
+      return { success: false, message }
+    }
   }
 
   const logout = () => {
-    setUser(null)
+    removeToken()
     setIsAuthenticated(false)
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, isLoading, error, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   )
