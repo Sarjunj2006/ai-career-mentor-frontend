@@ -8,3 +8,7 @@ export const loginRequest = (credentials) => {
 export const registerRequest = (userData) => {
   return axiosClient.post('/auth/register', userData)
 }
+
+export const getMeRequest = () => {
+  return axiosClient.get('/auth/me')
+}

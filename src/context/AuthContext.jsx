@@ -1,30 +1,44 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { loginRequest } from '../api/endpoints/auth.api'
+import { loginRequest, getMeRequest } from '../api/endpoints/auth.api'
 import { getToken, setToken, removeToken } from '../utils/tokenStorage'
 
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // Restore auth state on page refresh
   useEffect(() => {
-    const token = getToken()
-    if (token) {
-      setIsAuthenticated(true)
+    const restoreSession = async () => {
+      const token = getToken()
+      if (!token) {
+        setIsLoading(false)
+        return
+      }
+      try {
+        const response = await getMeRequest()
+        setUser(response.data)
+        setIsAuthenticated(true)
+      } catch {
+        removeToken()
+        setIsAuthenticated(false)
+      } finally {
+        setIsLoading(false)
+      }
     }
-    setIsLoading(false)
+    restoreSession()
   }, [])
 
   const login = async (credentials) => {
     setError('')
     try {
       const response = await loginRequest(credentials)
-      const { access_token } = response.data
+      setToken(response.data.access_token)
 
-      setToken(access_token)
+      const meResponse = await getMeRequest()
+      setUser(meResponse.data)
       setIsAuthenticated(true)
 
       return { success: true }
@@ -32,25 +46,21 @@ export const AuthProvider = ({ children }) => {
       const message =
         err.response?.status === 401
           ? 'Invalid email or password.'
-          : err.response?.data?.detail ||
-            'Something went wrong. Please try again.'
-
+          : err.response?.data?.detail || 'Something went wrong. Please try again.'
       setError(message)
       setIsAuthenticated(false)
-
       return { success: false, message }
     }
   }
 
   const logout = () => {
     removeToken()
+    setUser(null)
     setIsAuthenticated(false)
   }
 
   return (
-    <AuthContext.Provider
-      value={{ isAuthenticated, isLoading, error, login, logout }}
-    >
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, error, user, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Card from '../components/common/Card'
 import Button from '../components/common/Button'
 import Spinner from '../components/common/Spinner'
@@ -6,8 +6,11 @@ import { uploadResumeRequest } from '../api/endpoints/resume.api'
 import { isValidResumeFile } from '../utils/fileValidation'
 import { useAuth } from '../context/AuthContext'
 
+const LAST_UPLOAD_KEY = 'last_resume_upload'
+
 const Resume = () => {
   const { user } = useAuth()
+  const userId = user?.id
 
   const [selectedFile, setSelectedFile] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -18,8 +21,16 @@ const Resume = () => {
 
   const fileInputRef = useRef(null)
 
-  // Temporary — matches the backend's ?user_id=1 requirement until it reads the JWT instead
-  const userId = 1
+  useEffect(() => {
+    const saved = localStorage.getItem(LAST_UPLOAD_KEY)
+    if (saved) {
+      try {
+        setResult(JSON.parse(saved))
+      } catch {
+        localStorage.removeItem(LAST_UPLOAD_KEY)
+      }
+    }
+  }, [])
 
   const resetState = () => {
     setError('')
@@ -85,6 +96,7 @@ const Resume = () => {
       )
 
       setResult(response.data)
+      localStorage.setItem(LAST_UPLOAD_KEY, JSON.stringify(response.data))
     } catch (err) {
       const message =
         err.response?.data?.detail ||
@@ -98,6 +110,7 @@ const Resume = () => {
   const handleRemoveFile = () => {
     setSelectedFile(null)
     resetState()
+    localStorage.removeItem(LAST_UPLOAD_KEY)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -106,12 +119,12 @@ const Resume = () => {
       <div>
         <h2 className="text-xl font-semibold text-gray-800">Resume</h2>
         <p className="text-sm text-gray-500 mt-1">
-          Upload your resume in PDF or DOCX format for AI-powered analysis.
+          Upload your resume in PDF or DOCX format — this powers AI Resume Analysis,
+          Career Recommendations, and more.
         </p>
       </div>
 
       <Card>
-        {/* Drag-and-drop zone */}
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -154,7 +167,6 @@ const Resume = () => {
           </p>
         </div>
 
-        {/* Selected file display */}
         {selectedFile && (
           <div className="mt-4 flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -187,7 +199,6 @@ const Resume = () => {
           </div>
         )}
 
-        {/* Upload progress */}
         {isUploading && (
           <div className="mt-4">
             <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
@@ -205,14 +216,12 @@ const Resume = () => {
           </div>
         )}
 
-        {/* Error message */}
         {error && (
           <p className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
             {error}
           </p>
         )}
 
-        {/* Upload button */}
         <div className="mt-5 flex justify-end">
           <Button
             variant="primary"
@@ -224,12 +233,24 @@ const Resume = () => {
         </div>
       </Card>
 
-      {/* Result card */}
       {result && (
         <Card>
-          <h3 className="text-sm font-semibold text-gray-800 mb-4">
-            Upload Successful
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">
+                Upload Successful
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Head to the Dashboard to run AI Resume Analysis.
+              </p>
+            </div>
+            <button
+              onClick={handleRemoveFile}
+              className="text-xs text-gray-400 hover:text-red-600 shrink-0"
+            >
+              Clear
+            </button>
+          </div>
 
           <div className="flex flex-col gap-3 text-sm">
             <div className="flex justify-between border-b border-gray-100 pb-2">
